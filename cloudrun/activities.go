@@ -50,7 +50,34 @@ func (a *Activities) UpdateJob(ctx context.Context, job CloudRun) error {
 			},
 		},
 	}
-	_, err = runClient.Namespaces.Jobs.ReplaceJob(job.FullName(), spec).Do()
+	fullName := fmt.Sprintf("namespaces/%s/jobs/%s", job.ProjectId, job.Name)
+	_, err = runClient.Namespaces.Jobs.ReplaceJob(fullName, spec).Do()
+	return err
+}
+
+func (a *Activities) UpdateService(ctx context.Context, service CloudRun) error {
+	runClient, err := a.runFactory.GetV1Client(ctx, service.Region)
+	if err != nil {
+		return temporal.NewApplicationError(err.Error(), "Google Error")
+	}
+	spec := &run.Service{
+		ApiVersion: "serving.knative.dev/v1",
+		Kind: "Service",
+		Metadata: &run.ObjectMeta{
+			Name: service.Name,
+		},
+		Spec: &runv1.ServiceSpec{
+			Template: &runv1.RevisionTemplate{
+				Spec: &runv1.RevisionSpec{
+					Containers: []*runv1.Container{
+						{Image: service.Image},
+					},
+				},
+			},
+		},
+	}
+	fullName := fmt.Sprintf("namespaces/%s/services/%s", service.ProjectId, service.Name)
+	_, err = runClient.Namespaces.Services.ReplaceService(fullName, spec).Do()
 	return err
 }
 
@@ -60,7 +87,8 @@ func (a *Activities) StartJobExecution(ctx context.Context, job CloudRun) (*Star
 	if err != nil {
 		return executionReponse, temporal.NewApplicationError(err.Error(), "Google Error")
 	}
-	operation, err := runClient.Projects.Locations.Jobs.Run(job.FullPath(), &runv2.GoogleCloudRunV2RunJobRequest{}).Do()
+	fullName := fmt.Sprintf("projects/%s/locations/%s/jobs/%s", job.ProjectId, job.Region, job.Name)
+	operation, err := runClient.Projects.Locations.Jobs.Run(fullName, &runv2.GoogleCloudRunV2RunJobRequest{}).Do()
 	if err != nil {
 		return executionReponse, fmt.Errorf("Failed to start job execution: %w", err)
 	}

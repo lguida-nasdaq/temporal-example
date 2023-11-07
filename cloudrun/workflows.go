@@ -16,28 +16,28 @@ func DeployClientWorkflow(ctx workflow.Context, clientName, image string) error 
 		// For this test is a different image but it should be the same as the service
 		Image: "us-docker.pkg.dev/pissenlit/metrio/sleeper:latest",
 	}
-	// service := CloudRun{
-	// 	Name: clientName,
-	// 	ProjectId: "pissenlit",
-	// 	Region: "us-central1",
-	// 	Image: image,
-	// }
-
 	err := updateCloudRunJob(ctx, job)
 	if err != nil {
 		return err
 	}
-
 	operationId, err := startJobExecution(ctx, job)
 	if err != nil {
 		return err
 	}
-
 	err = waitForExecutinToFinish(ctx, operationId, job.Region)
 	if err != nil {
 		return err
 	}
-
+	service := CloudRun{
+		Name: clientName,
+		ProjectId: "pissenlit",
+		Region: "us-central1",
+		Image: image,
+	}
+	err = updateService(ctx, service)
+	if err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -47,6 +47,15 @@ func updateCloudRunJob(ctx workflow.Context, job CloudRun) error {
 	})
 	var a *Activities
 	future := workflow.ExecuteActivity(ctx, a.UpdateJob, job)
+	return future.Get(ctx, nil)
+}
+
+func updateService(ctx workflow.Context, service CloudRun) error {
+	ctx = workflow.WithActivityOptions(ctx, workflow.ActivityOptions{
+		StartToCloseTimeout: time.Minute * 5,
+	})
+	var a *Activities
+	future := workflow.ExecuteActivity(ctx, a.UpdateService, service)
 	return future.Get(ctx, nil)
 }
 

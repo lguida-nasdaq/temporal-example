@@ -27,17 +27,18 @@ type CloudRun struct {
 	Region    string
 }
 
+// func (c CloudRun) FullName() string {
+// 	return
+// }
+
+// func (c CloudRun) FullPath() string {
+// 	return fmt.Sprintf("projects/%s/locations/%s/jobs/%s", c.ProjectId, c.Region, c.Name)
+// }
+
 type StartJobExecutionResponse struct {
 	OperationId string
 }
 
-func (c CloudRun) FullName() string {
-	return fmt.Sprintf("namespaces/%s/jobs/%s", c.ProjectId, c.Name)
-}
-
-func (c CloudRun) FullPath() string {
-	return fmt.Sprintf("projects/%s/locations/%s/jobs/%s", c.ProjectId, c.Region, c.Name)
-}
 
 type GoogleCloudRunServiceFactory struct {}
 
