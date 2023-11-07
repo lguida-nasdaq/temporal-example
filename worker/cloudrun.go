@@ -1,8 +1,9 @@
-package cloudrun
+package main
 
 import (
 	"log"
 
+	"github.com/metriodev/temporal/cloudrun"
 	"go.temporal.io/sdk/client"
 	"go.temporal.io/sdk/worker"
 )
@@ -17,13 +18,13 @@ func main() {
 	defer c.Close()
 
 	// New worker for the deplpy queue
-	w := worker.New(c, DeployQueueName, worker.Options{})
+	w := worker.New(c, cloudrun.DeployQueueName, worker.Options{})
 	// clourRun Activities with a GCP client
-	cloudRunActivities := NewActivities(new(GoogleCloudRunServiceFactory))
+	cloudRunActivities := cloudrun.NewActivities(new(cloudrun.GoogleCloudRunServiceFactory))
 	// Register the cloudRun activities
 	w.RegisterActivity(cloudRunActivities)
 	// Register the deploy workflow
-	w.RegisterWorkflow(DeployClientWorkflow)
+	w.RegisterWorkflow(cloudrun.DeployClientWorkflow)
 
 	// Start listening to the Task Queue
 	err = w.Run(worker.InterruptCh())

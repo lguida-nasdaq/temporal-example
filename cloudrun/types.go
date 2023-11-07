@@ -5,7 +5,19 @@ import (
 	"fmt"
 
 	"google.golang.org/api/option"
-	"google.golang.org/api/run/v1"
+	runv1 "google.golang.org/api/run/v1"
+	runv2 "google.golang.org/api/run/v2"
+)
+
+type ErrorType string
+
+func (e ErrorType) String() string {
+	return string(e)
+}
+
+const (
+	jobExecutionFailedError ErrorType = "jobExecutionFailed"
+	jobIsNotFinished        ErrorType = "jobIsNotFinished"
 )
 
 type CloudRun struct {
@@ -15,14 +27,29 @@ type CloudRun struct {
 	Region    string
 }
 
+type StartJobExecutionResponse struct {
+	OperationId string
+}
+
 func (c CloudRun) FullName() string {
 	return fmt.Sprintf("namespaces/%s/jobs/%s", c.ProjectId, c.Name)
 }
 
+func (c CloudRun) FullPath() string {
+	return fmt.Sprintf("projects/%s/locations/%s/jobs/%s", c.ProjectId, c.Region, c.Name)
+}
+
 type GoogleCloudRunServiceFactory struct {}
 
-func (f *GoogleCloudRunServiceFactory) GetClient(ctx context.Context, region string) (*run.APIService, error) {
-	return run.NewService(
+func (f *GoogleCloudRunServiceFactory) GetV1Client(ctx context.Context, region string) (*runv1.APIService, error) {
+	return runv1.NewService(
+		ctx,
+		option.WithEndpoint(fmt.Sprintf("https://%s-run.googleapis.com", region)),
+	)
+}
+
+func (f *GoogleCloudRunServiceFactory) GetV2Client(ctx context.Context, region string) (*runv2.Service, error) {
+	return runv2.NewService(
 		ctx,
 		option.WithEndpoint(fmt.Sprintf("https://%s-run.googleapis.com", region)),
 	)

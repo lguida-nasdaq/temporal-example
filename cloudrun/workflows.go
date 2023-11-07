@@ -27,19 +27,50 @@ func DeployClientWorkflow(ctx workflow.Context, clientName, image string) error 
 	if err != nil {
 		return err
 	}
+
+	operationId, err := startJobExecution(ctx, job)
+	if err != nil {
+		return err
+	}
+
+	err = waitForExecutinToFinish(ctx, operationId, job.Region)
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 
 func updateCloudRunJob(ctx workflow.Context, job CloudRun) error {
 	ctx = workflow.WithActivityOptions(ctx, workflow.ActivityOptions{
-		// Activity timeout
 		StartToCloseTimeout: time.Minute * 5,
 	})
 	var a *Activities
 	future := workflow.ExecuteActivity(ctx, a.UpdateJob, job)
-
-	// If we had a struct return type, we would pass the pointer
-	// instead of nil
 	return future.Get(ctx, nil)
 }
 
+func startJobExecution(ctx workflow.Context, job CloudRun) (string, error) {
+	ctx = workflow.WithActivityOptions(ctx, workflow.ActivityOptions{
+		StartToCloseTimeout: time.Minute * 5,
+	})
+	var a *Activities
+	future := workflow.ExecuteActivity(ctx, a.StartJobExecution, job)
+	var response StartJobExecutionResponse
+	err := future.Get(ctx, &response)
+	return response.OperationId, err
+}
+
+func waitForExecutinToFinish(ctx workflow.Context, operationId, region string) error {
+	ctx = workflow.WithActivityOptions(ctx, workflow.ActivityOptions{
+		StartToCloseTimeout: time.Minute * 10,
+		// In a real case, setup the correct values for the
+		// RetryPolicy
+		// RetryPolicy: &internal.RetryPolicy{
+		// },
+	})
+
+	var a *Activities
+	future := workflow.ExecuteActivity(ctx, a.WaitForExecutinToFinish, operationId, region)
+	return future.Get(ctx, nil)
+}
